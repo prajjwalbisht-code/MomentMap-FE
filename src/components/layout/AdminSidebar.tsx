@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 const MENU_ITEMS = [
-    { label: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
     { label: "Single Entry", icon: UserPlus, id: "single" },
     { label: "Bulk Upload", icon: UploadCloud, id: "bulk" },
     { label: "Manage Catalog", icon: Trash2, id: "manage" },

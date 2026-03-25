@@ -16,6 +16,8 @@ import {
     Info, Palette, Scissors, Globe, Package, Type
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const EXCEL_MAPPING: Record<string, string> = {
@@ -172,7 +174,35 @@ export default function AdminPage() {
     const deleteProduct = useDeleteProduct();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const pathname = usePathname();
     const [activeTab, setActiveTab] = useState("single");
+    const [highlightedTab, setHighlightedTab] = useState<string | null>(null);
+
+    const handleTabChange = (id: string) => {
+        setActiveTab(id);
+        const element = document.getElementById(id);
+        if (element) {
+            const offset = 100; // Adjust for sticky header
+            const bodyRect = document.body.getBoundingClientRect().top;
+            const elementRect = element.getBoundingClientRect().top;
+            const elementPosition = elementRect - bodyRect;
+            const offsetPosition = elementPosition - offset;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: "smooth"
+            });
+
+            setHighlightedTab(id);
+            setTimeout(() => setHighlightedTab(null), 2000);
+        }
+    };
+
+    const navItems = [
+        { name: "Collections", href: "/products" },
+        { name: "Calendar", href: "/calendar" },
+        { name: "Admin", href: "/admin" },
+    ];
     const [productForm, setProductForm] = useState(INITIAL_FORM_STATE);
     const [deleteInput, setDeleteInput] = useState("");
     const [isUploading, setIsUploading] = useState(false);
@@ -253,7 +283,7 @@ export default function AdminPage() {
 
     return (
         <div className="min-h-screen bg-[#f8f9fa] flex">
-            <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+            <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
             <main className="flex-1 ml-80 min-h-screen">
                 <header className="h-20 border-b border-black/5 bg-white flex items-center justify-between px-12 sticky top-0 z-40">
@@ -263,16 +293,26 @@ export default function AdminPage() {
                         <span className="text-primary italic">Catalogue New Silhouette</span>
                     </div>
 
-                    <div className="flex items-center gap-8">
-                        <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/30 group-focus-within:text-primary transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search entries..."
-                                className="h-10 w-64 bg-surface-container-low rounded-full pl-11 pr-6 text-xs font-bold border-none focus:ring-1 ring-primary/20 transition-all"
-                            />
+                    <div className="flex items-center gap-12">
+                        {/* Navigation Links in place of Search */}
+                        <div className="hidden md:flex items-center gap-8 font-body">
+                            {navItems.map((item) => (
+                                <Link
+                                    key={item.name}
+                                    href={item.href}
+                                    className={cn(
+                                        "text-[10px] font-bold tracking-[0.2em] uppercase transition-all pb-1 border-b-2",
+                                        pathname === item.href
+                                            ? "text-primary border-primary"
+                                            : "text-muted-foreground/40 border-transparent hover:text-primary"
+                                    )}
+                                >
+                                    {item.name}
+                                </Link>
+                            ))}
                         </div>
-                        <div className="flex items-center gap-4">
+
+                        <div className="flex items-center gap-4 border-l border-black/5 pl-8">
                             <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-surface-container-low transition-colors relative">
                                 <Bell className="w-5 h-5 text-muted-foreground/60" />
                                 <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
@@ -285,7 +325,10 @@ export default function AdminPage() {
                 </header>
 
                 <div className="p-12 space-y-12 max-w-[1400px] mx-auto">
-                    <div className="flex items-end justify-between border-b border-black/5 pb-12">
+                    <div id="single" className={cn(
+                        "flex items-end justify-between border-b border-black/5 pb-12 transition-all p-4 rounded-3xl",
+                        highlightedTab === "single" ? "section-highlight" : ""
+                    )}>
                         <div className="space-y-4">
                             <h2 className="font-display text-6xl italic font-bold tracking-tight">New Silhouette</h2>
                             <p className="text-lg text-muted-foreground/60 font-body">Define individual garment metadata with artisanal precision.</p>
@@ -344,7 +387,10 @@ export default function AdminPage() {
                     </form>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-20">
-                        <div className="p-12 bg-white rounded-[3rem] shadow-ambient space-y-12 relative group overflow-hidden">
+                        <div id="bulk" className={cn(
+                            "p-12 bg-white rounded-[3rem] shadow-ambient space-y-12 relative group overflow-hidden transition-all",
+                            highlightedTab === "bulk" ? "section-highlight" : ""
+                        )}>
                             <div className="flex items-center justify-between z-10 relative">
                                 <div className="space-y-2">
                                     <h3 className="font-display text-4xl italic font-bold">Bulk Upload</h3>
@@ -379,7 +425,10 @@ export default function AdminPage() {
                             </div>
                         </div>
 
-                        <div className="p-12 bg-white rounded-[3rem] shadow-ambient space-y-12 relative overflow-hidden">
+                        <div id="manage" className={cn(
+                            "p-12 bg-white rounded-[3rem] shadow-ambient space-y-12 relative overflow-hidden transition-all",
+                            highlightedTab === "manage" ? "section-highlight" : ""
+                        )}>
                             <div className="flex items-center justify-between">
                                 <div className="space-y-2">
                                     <h3 className="font-display text-4xl italic font-bold">Manage Catalog</h3>

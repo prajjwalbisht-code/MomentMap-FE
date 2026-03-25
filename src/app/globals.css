@@ -93,3 +93,12 @@
     --rdp-background-color: rgba(99, 14, 212, 0.1);
     margin: 0;
 }
+
+@keyframes highlight-fade {
+    0% { background-color: rgba(99, 14, 212, 0.1); box-shadow: 0 0 0 4px rgba(99, 14, 212, 0.05); }
+    100% { background-color: transparent; box-shadow: none; }
+}
+
+.section-highlight {
+    animation: highlight-fade 2s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
