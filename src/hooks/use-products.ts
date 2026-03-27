@@ -16,7 +16,7 @@ export function useProducts(filters?: { category?: string; search?: string }) {
 
             const res = await fetch(url, { credentials: "include" });
             if (!res.ok) throw new Error("Failed to fetch products");
-            return api.products.list.responses[200].parse(await res.json());
+            return await res.json();
         },
     });
 }

@@ -24,11 +24,13 @@ interface EventDialogProps {
 
 type ModalTab = "outfit" | "marketing" | "gifting";
 
-function AestheticPills({ event }: { event: Event }) {
+function AestheticPills({ event }: { event: any }) {
     const pills: string[] = [];
-    if (event.fashionKeywords?.mood?.length) pills.push(...event.fashionKeywords.mood);
-    if (event.fashionKeywords?.styles?.length) pills.push(...event.fashionKeywords.styles);
-    if (event.fashionKeywords?.colors?.length) pills.push(...event.fashionKeywords.colors);
+    const fk = event.fashion_keywords || event.fashionKeywords;
+    if (fk?.mood?.length) pills.push(...fk.mood);
+    if (fk?.styles?.length) pills.push(...fk.styles);
+    if (fk?.colors?.length) pills.push(...fk.colors);
+    if (fk?.color?.length) pills.push(...fk.color);
 
     const uniquePills = Array.from(new Set(pills));
     if (!uniquePills.length) return null;
@@ -55,7 +57,7 @@ function AestheticPills({ event }: { event: Event }) {
 function EventSwitcher({
     events, activeIndex, onSelect,
 }: {
-    events: Event[];
+    events: any[];
     activeIndex: number;
     onSelect: (i: number) => void;
 }) {
@@ -95,55 +97,40 @@ function EventSwitcher({
     );
 }
 
-function OutfitTab({ event, dateStr }: { event: Event; dateStr: string }) {
-    const [vibe, setVibe] = useState("all");
-    const { data: recs, isLoading } = useRecommendations(dateStr, vibe, event.id);
+function OutfitTab({ event }: { event: any }) {
+    const products = event.products || [];
 
     return (
         <div className="space-y-8">
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <h4 className="font-display font-bold text-2xl italic">Curated Silhouettes</h4>
-                <div className="flex gap-1 bg-surface-container-low rounded-full p-1">
-                    {["all", "party", "casual", "festive"].map(t => (
-                        <button
-                            key={t}
-                            onClick={() => setVibe(t)}
-                            className={`px-5 py-2 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all ${vibe === t
-                                ? "bg-primary text-white shadow-raised"
-                                : "text-muted-foreground hover:text-foreground"
-                                }`}
-                        >
-                            {t}
-                        </button>
-                    ))}
-                </div>
             </div>
 
-            {isLoading ? (
-                <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary opacity-20" />
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <AnimatePresence mode="popLayout">
-                        {(recs ?? []).map((p: any, idx: number) => (
-                            <motion.div
-                                key={p.id}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: idx * 0.05 }}
-                            >
-                                <ProductCard product={p} />
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                    {!(recs ?? []).length && (
-                        <div className="col-span-2 py-20 text-center text-muted-foreground font-display italic text-lg">
-                            No silhouette matches for this event yet.
-                        </div>
-                    )}
-                </div>
-            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <AnimatePresence mode="popLayout">
+                    {products.map((p: any, idx: number) => (
+                        <motion.div
+                            key={p.id || idx}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                        >
+                            <ProductCard product={{
+                                ...p,
+                                name: p["Product Name"] || p.name,
+                                imageUrl: p["Image URL 1"] || p.imageUrl,
+                                price: p.price || 0,
+                                category: p.Category || p.category
+                            }} />
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+                {!products.length && (
+                    <div className="col-span-2 py-20 text-center text-muted-foreground font-display italic text-lg">
+                        No silhouette matches for this event yet.
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -168,17 +155,11 @@ function MktCard({ icon: Icon, title, children }: {
     );
 }
 
-function MarketingTab({ event }: { event: Event }) {
-    const { data: mkt, isLoading } = useMarketingContent(event.id);
-    if (isLoading) return (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-primary opacity-20" />
-            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-primary animate-pulse">Generating Campaign...</p>
-        </div>
-    );
+function MarketingTab({ event }: { event: any }) {
+    const mkt = event.marketing;
 
-    const appHeadline = mkt?.app?.headline ?? `${event.name} — Dress the Moment`;
-    const appSubtext = mkt?.app?.subtext ?? "Shop curated fashion looks.";
+    const appHeadline = mkt?.app?.headline ?? `${event.title || event.name} — Dress the Moment`;
+    const appSubtext = mkt?.app?.lines?.[0] ?? "Shop curated fashion looks.";
 
     return (
         <div className="grid lg:grid-cols-2 gap-8">
@@ -192,9 +173,12 @@ function MarketingTab({ event }: { event: Event }) {
                         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">Subtext</p>
                         <p className="text-muted-foreground font-body leading-relaxed">{appSubtext}</p>
                     </div>
+                    {mkt?.app?.lines?.slice(1).map((line: string, i: number) => (
+                        <p key={i} className="text-muted-foreground font-body leading-relaxed">{line}</p>
+                    ))}
                     <div className="pt-4">
                         <span className="px-6 py-2.5 rounded-full bg-primary text-white text-[10px] font-bold tracking-widest uppercase">
-                            CTA: {mkt?.app?.cta ?? "Shop Now"}
+                            CTA: Discover More
                         </span>
                     </div>
                 </div>
@@ -204,14 +188,19 @@ function MarketingTab({ event }: { event: Event }) {
                 <div className="space-y-6">
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">Caption</p>
-                        <p className="text-muted-foreground font-body leading-relaxed italic">"{mkt?.social?.caption}"</p>
+                        <p className="text-muted-foreground font-body leading-relaxed italic">
+                            "{mkt?.social_media?.headline || mkt?.social?.caption}"
+                        </p>
+                        {mkt?.social_media?.lines?.map((line: string, i: number) => (
+                            <p key={i} className="text-muted-foreground font-body leading-relaxed mt-2 italic">"{line}"</p>
+                        ))}
                     </div>
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">Keywords</p>
                         <div className="flex flex-wrap gap-2">
-                            {(mkt?.social?.hashtags ?? []).map((tag: string, i: number) => (
+                            {(event.fashion_keywords?.color || []).map((tag: string, i: number) => (
                                 <span key={i} className="text-[10px] font-bold text-primary bg-primary/5 px-3 py-1 rounded-full">
-                                    {tag}
+                                    #{tag}
                                 </span>
                             ))}
                         </div>
@@ -348,7 +337,7 @@ export function EventDialog({ dateStr, events, isOpen, onClose }: EventDialogPro
                                     exit={{ opacity: 0, y: -20 }}
                                     transition={{ duration: 0.5, ease: "circOut" }}
                                 >
-                                    {activeTab === "outfit" && <OutfitTab event={event} dateStr={dateStr ?? ""} />}
+                                    {activeTab === "outfit" && <OutfitTab event={event} />}
                                     {activeTab === "marketing" && <MarketingTab event={event} />}
                                     {activeTab === "gifting" && <GiftingTab event={event} />}
                                 </motion.div>

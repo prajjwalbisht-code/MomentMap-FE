@@ -61,14 +61,6 @@ export const api = {
                 200: z.array(z.custom<typeof events.$inferSelect>()),
             },
         },
-        get: {
-            method: 'GET' as const,
-            path: '/api/events/:date', // Get event by date
-            responses: {
-                200: z.custom<typeof events.$inferSelect>(), // Return single event or undefined (nullable on backend)
-                404: errorSchemas.notFound,
-            },
-        },
         // AI Trigger Endpoint
         generate: {
             method: 'POST' as const,

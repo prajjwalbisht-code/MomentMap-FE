@@ -2,7 +2,6 @@
 import { db } from "./db";
 import { products, events, type Product, type InsertProduct, type Event, type InsertEvent } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { STATIC_EVENTS } from "./static-events";
 
 export interface IStorage {
     // Products
@@ -54,31 +53,26 @@ export class DatabaseStorage implements IStorage {
 
     async getEvents(): Promise<Event[]> {
         try {
-            const results = await db.select().from(events);
-            if (results.length === 0) return STATIC_EVENTS as any;
-            return results;
+            return await db.select().from(events);
         } catch (_) {
-            return STATIC_EVENTS as any;
+            return [];
         }
     }
 
     async getEventByDate(date: string): Promise<Event | undefined> {
         try {
             const [event] = await db.select().from(events).where(eq(events.date, date));
-            if (!event) return (STATIC_EVENTS as any[]).find(e => e.date === date);
             return event;
         } catch (_) {
-            return (STATIC_EVENTS as any[]).find(e => e.date === date);
+            return undefined;
         }
     }
 
     async getEventsByDate(date: string): Promise<Event[]> {
         try {
-            const results = await db.select().from(events).where(eq(events.date, date));
-            if (results.length === 0) return (STATIC_EVENTS as any[]).filter(e => e.date === date);
-            return results;
+            return await db.select().from(events).where(eq(events.date, date));
         } catch (_) {
-            return (STATIC_EVENTS as any[]).filter(e => e.date === date);
+            return [];
         }
     }
 

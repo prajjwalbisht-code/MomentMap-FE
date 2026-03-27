@@ -66,19 +66,24 @@ export default function CalendarPage() {
   const monthStart = startOfMonth(new Date(viewYear, viewMonth));
   const monthEnd = endOfMonth(new Date(viewYear, viewMonth));
 
-  const { data: allEvents = [] } = useEvents({
-    start: format(monthStart, "yyyy-MM-dd"),
-    end: format(monthEnd, "yyyy-MM-dd"),
-  });
+  const monthStr = format(new Date(viewYear, viewMonth), "yyyy-MM");
+  const { data: eventsMap = {} } = useEvents(monthStr);
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, any[]> = {};
-    for (const e of allEvents) {
-      if (!map[e.date]) map[e.date] = [];
-      map[e.date].push(e);
-    }
+    Object.entries(eventsMap || {}).forEach(([day, value]: [string, any]) => {
+      if (value.events) {
+        const dayStr = day.padStart(2, '0');
+        const dateStr = `${monthStr}-${dayStr}`;
+        map[dateStr] = value.events.map((e: any) => ({
+          ...e,
+          name: e.title || e.name, // Support both for transition
+          date: dateStr // Ensure it matches the YYYY-MM-DD expected by calendar
+        }));
+      }
+    });
     return map;
-  }, [allEvents]);
+  }, [eventsMap, monthStr]);
 
   const calendarDays = useMemo(
     () => getDaysInMonth(viewYear, viewMonth),

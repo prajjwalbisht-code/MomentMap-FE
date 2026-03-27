@@ -1,42 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl, type Event, type InsertEvent } from "@shared/routes";
 
-// GET /api/events
-export function useEvents(range?: { start: string; end: string }) {
+// GET /api/events/:month
+export function useEvents(month?: string) {
     return useQuery({
-        queryKey: [api.events.list.path, range],
+        queryKey: ["events", month],
         queryFn: async () => {
-            const url = range
-                ? buildUrl(api.events.list.path) + `?start=${range.start}&end=${range.end}`
-                : api.events.list.path;
-
-            const res = await fetch(url, { credentials: "include" });
+            if (!month) return {};
+            const res = await fetch(`/api/events-monthly/${month}`, { credentials: "include" });
             if (!res.ok) throw new Error("Failed to fetch events");
-            return res.json() as Promise<Event[]>;
+            return res.json();
         },
+        enabled: !!month,
     });
 }
 
-// GET /api/events/:date  → returns Event[] (all events for that date)
-export function useEventsByDate(date: string) {
-    return useQuery({
-        queryKey: ["events-by-date", date],
-        queryFn: async () => {
-            if (!date) return [] as Event[];
-            const res = await fetch(`/api/events/${date}`, { credentials: "include" });
-            if (res.status === 404) return [] as Event[];
-            if (!res.ok) throw new Error("Failed to fetch events");
-            return res.json() as Promise<Event[]>;
-        },
-        enabled: !!date,
-    });
-}
-
-// Legacy single-event hook (kept for backward compat)
-export function useEventByDate(date: string) {
-    const { data, ...rest } = useEventsByDate(date);
-    return { data: data?.[0], ...rest };
-}
 
 // POST /api/events/generate
 export function useGenerateEvent() {

@@ -15,9 +15,11 @@ export default function ProductsPage() {
     const categories = ["All", "Dresses", "Tops", "Shoes", "Accessories"];
     const [activeCategory, setActiveCategory] = useState("All");
 
-    const filteredProducts = products?.filter(p =>
-        activeCategory === "All" || p.category.toLowerCase() === activeCategory.toLowerCase()
-    );
+    const filteredProducts = Array.isArray(products)
+        ? products.filter((p: any) =>
+            activeCategory === "All" || (p.Category || p.category)?.toLowerCase() === activeCategory.toLowerCase()
+        )
+        : [];
 
     return (
         <div className="min-h-screen bg-surface">
@@ -71,7 +73,7 @@ export default function ProductsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
                         {filteredProducts?.map((product, index) => (
                             <motion.div
-                                key={product.id}
+                                key={product["Style Code"] || product.id || index}
                                 initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05, duration: 0.8, ease: "circOut" }}

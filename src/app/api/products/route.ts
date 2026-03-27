@@ -5,26 +5,56 @@ import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
+
 export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category");
-    const search = searchParams.get("search");
+    try {
+        const url = `${BACKEND_URL}/api/products`;
+        console.log(`Fetching products from backend: ${url}`);
+        const response = await fetch(url, {
+            cache: 'no-store'
+        });
 
-    let products = await storage.getProducts();
+        if (!response.ok) {
+            return NextResponse.json(
+                { message: "Failed to fetch products from backend" },
+                { status: response.status }
+            );
+        }
 
-    if (category && category !== "All") {
-        products = products.filter(p => p.category.toLowerCase() === category.toLowerCase());
-    }
+        const body = await response.json();
+        const products = Array.isArray(body) ? body : (body.data || []);
 
-    if (search) {
-        const s = search.toLowerCase();
-        products = products.filter(p =>
-            p.name.toLowerCase().includes(s) ||
-            p.description?.toLowerCase().includes(s)
+        // Re-apply filters if needed (optional, since backend might handle it)
+        const { searchParams } = new URL(req.url);
+        const category = searchParams.get("category");
+        const search = searchParams.get("search");
+
+        let filtered = products;
+        if (category && category !== "All") {
+            filtered = filtered.filter((p: any) => {
+                const cat = p.Category || p.category;
+                return cat?.toLowerCase() === category.toLowerCase();
+            });
+        }
+
+        if (search) {
+            const s = search.toLowerCase();
+            filtered = filtered.filter((p: any) => {
+                const name = p["Product Name"] || p.name;
+                const desc = p.description || p.Description || "";
+                return name?.toLowerCase().includes(s) || desc?.toLowerCase().includes(s);
+            });
+        }
+
+        return NextResponse.json(filtered);
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        return NextResponse.json(
+            { message: "Internal Server Error fetching products" },
+            { status: 500 }
         );
     }
-
-    return NextResponse.json(products);
 }
 
 export async function POST(req: Request) {
