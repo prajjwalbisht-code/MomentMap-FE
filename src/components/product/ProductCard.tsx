@@ -14,7 +14,7 @@ export function ProductCard({ product: p, className }: { product: any; className
     const name = p["Product Name"] || p.name;
     const imageUrl = p["Image URL 1"] || p.imageUrl;
     const category = p.Category || p.category;
-    const price = p.price || 0;
+    const brand = p.Brand || p.brand;
     const occasions = p.occasion || p.occasions || [];
     const seasons = p.season || p.seasons || [];
 
@@ -38,11 +38,9 @@ export function ProductCard({ product: p, className }: { product: any; className
                 </div>
             </div>
             <CardContent className="p-8">
-                <div className="flex justify-between items-start mb-3">
+                <div className="flex flex-col gap-1 mb-3">
+                    {brand && <p className="text-[10px] font-bold text-primary/60 uppercase tracking-[0.2em]">{brand}</p>}
                     <h3 className="font-body font-bold text-sm tracking-tight line-clamp-1 group-hover:text-primary transition-colors">{name}</h3>
-                    <span className="font-display font-bold text-xl text-primary tracking-tighter">
-                        ${(price / 100).toFixed(0)}
-                    </span>
                 </div>
                 <p className="text-[10px] font-body uppercase tracking-[0.3em] text-muted-foreground/40 mb-6 font-bold">{category}</p>
                 <div className="flex flex-wrap gap-2">

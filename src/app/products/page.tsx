@@ -12,13 +12,24 @@ export default function ProductsPage() {
     const [search, setSearch] = useState("");
     const { data: products, isLoading } = useProducts({ search });
 
-    const categories = ["All", "Dresses", "Tops", "Shoes", "Accessories"];
+    const categories = ["All", "Dresses", "Tops", "Bags", "Accessories"];
     const [activeCategory, setActiveCategory] = useState("All");
 
+    const ACCESSORY_SUBCATEGORIES = [
+        "jewellery", "other accessries", "other accessories", "bracelets",
+        "pendents", "pocket squares", "ties", "caps", "necklace",
+        "earring", "glasses", "watches", "rings", "anklets", "nailcare"
+    ];
+
     const filteredProducts = Array.isArray(products)
-        ? products.filter((p: any) =>
-            activeCategory === "All" || (p.Category || p.category)?.toLowerCase() === activeCategory.toLowerCase()
-        )
+        ? products.filter((p: any) => {
+            if (activeCategory === "All") return true;
+            const cat = (p.Category || p.category)?.toLowerCase();
+            if (activeCategory === "Accessories") {
+                return ACCESSORY_SUBCATEGORIES.includes(cat) || cat === "accessories";
+            }
+            return cat === activeCategory.toLowerCase();
+        })
         : [];
 
     return (

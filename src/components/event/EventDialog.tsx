@@ -24,6 +24,15 @@ interface EventDialogProps {
 
 type ModalTab = "outfit" | "marketing" | "gifting";
 
+const GIFTING_CATEGORIES = [
+    "anklets", "armlets", "bags", "bangles", "body_fragrance", "bracelets",
+    "candles_and_candle holders", "clocks", "drinkware", "earrings", "glasses",
+    "hair jewellery", "head and hair accessories", "home_decor_accents",
+    "jewellery accessories", "necklaces", "other accessories", "picket squares",
+    "pocket squares", "rings", "table_accessories", "tableware", "ties",
+    "wall_decor", "wallets", "watches"
+];
+
 function AestheticPills({ event }: { event: any }) {
     const pills: string[] = [];
     const fk = event.fashion_keywords || event.fashionKeywords;
@@ -119,8 +128,8 @@ function OutfitTab({ event }: { event: any }) {
                                 ...p,
                                 name: p["Product Name"] || p.name,
                                 imageUrl: p["Image URL 1"] || p.imageUrl,
-                                price: p.price || 0,
-                                category: p.Category || p.category
+                                category: p.Category || p.category,
+                                brand: p.Brand || p.brand
                             }} />
                         </motion.div>
                     ))}
@@ -164,46 +173,30 @@ function MarketingTab({ event }: { event: any }) {
     return (
         <div className="grid lg:grid-cols-2 gap-8">
             <MktCard icon={Smartphone} title="In-App Editorial">
-                <div className="space-y-6">
+                <div className="space-y-12">
                     <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">Headline</p>
-                        <p className="text-xl font-display font-bold italic">{appHeadline}</p>
+                        <p className="text-5xl font-display font-bold italic tracking-tighter leading-[0.95] text-primary">
+                            {appHeadline}
+                        </p>
                     </div>
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">Subtext</p>
-                        <p className="text-muted-foreground font-body leading-relaxed">{appSubtext}</p>
-                    </div>
-                    {mkt?.app?.lines?.slice(1).map((line: string, i: number) => (
-                        <p key={i} className="text-muted-foreground font-body leading-relaxed">{line}</p>
-                    ))}
-                    <div className="pt-4">
-                        <span className="px-6 py-2.5 rounded-full bg-primary text-white text-[10px] font-bold tracking-widest uppercase">
-                            CTA: Discover More
-                        </span>
+                    <div className="space-y-6">
+                        <p className="text-xl text-muted-foreground/80 font-body leading-relaxed">{appSubtext}</p>
+                        {mkt?.app?.lines?.slice(1).map((line: string, i: number) => (
+                            <p key={i} className="text-xl text-muted-foreground/80 font-body leading-relaxed">{line}</p>
+                        ))}
                     </div>
                 </div>
             </MktCard>
 
             <MktCard icon={Share2} title="Social Narrative">
-                <div className="space-y-6">
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">Caption</p>
-                        <p className="text-muted-foreground font-body leading-relaxed italic">
+                <div className="space-y-8">
+                    <div className="space-y-10 italic">
+                        <p className="text-3xl text-muted-foreground/90 font-display font-medium leading-[1.2] tracking-tight">
                             "{mkt?.social_media?.headline || mkt?.social?.caption}"
                         </p>
                         {mkt?.social_media?.lines?.map((line: string, i: number) => (
-                            <p key={i} className="text-muted-foreground font-body leading-relaxed mt-2 italic">"{line}"</p>
+                            <p key={i} className="text-3xl text-muted-foreground/90 font-display font-medium leading-[1.2] tracking-tight">"{line}"</p>
                         ))}
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">Keywords</p>
-                        <div className="flex flex-wrap gap-2">
-                            {(event.fashion_keywords?.color || []).map((tag: string, i: number) => (
-                                <span key={i} className="text-[10px] font-bold text-primary bg-primary/5 px-3 py-1 rounded-full">
-                                    #{tag}
-                                </span>
-                            ))}
-                        </div>
                     </div>
                 </div>
             </MktCard>
@@ -211,23 +204,46 @@ function MarketingTab({ event }: { event: any }) {
     );
 }
 
-function GiftingTab({ event }: { event: Event }) {
+function GiftingTab({ event }: { event: any }) {
+    const products = event.products || [];
+    const giftingProducts = products.filter((p: any) => {
+        const cat = (p.Category || p.category)?.toLowerCase();
+        return GIFTING_CATEGORIES.includes(cat);
+    });
+
     return (
-        <div className="bg-surface-container-low rounded-[3rem] p-12">
-            <div className="flex items-center gap-4 mb-8">
-                <Gift className="w-8 h-8 text-secondary" />
-                <h4 className="font-display font-bold text-4xl italic">Gifting Curation</h4>
+        <div className="space-y-8">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                    <Gift className="w-8 h-8 text-primary" />
+                    <h4 className="font-display font-bold text-2xl italic">Gifting Curation</h4>
+                </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-8">
-                {[
-                    { title: "Signature Sets", desc: "Curated hues for the occasion." },
-                    { title: "Mood matched", desc: "Accessories evoking the spirit." },
-                ].map((item, i) => (
-                    <div key={i} className="bg-white rounded-[2rem] p-8 shadow-ambient">
-                        <p className="font-display font-bold text-xl mb-2">{item.title}</p>
-                        <p className="text-muted-foreground text-sm font-body">{item.desc}</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <AnimatePresence mode="popLayout">
+                    {giftingProducts.map((p: any, idx: number) => (
+                        <motion.div
+                            key={p.id || idx}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                        >
+                            <ProductCard product={{
+                                ...p,
+                                name: p["Product Name"] || p.name,
+                                imageUrl: p["Image URL 1"] || p.imageUrl,
+                                category: p.Category || p.category,
+                                brand: p.Brand || p.brand
+                            }} />
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+                {!giftingProducts.length && (
+                    <div className="col-span-2 py-20 text-center text-muted-foreground font-display italic text-lg">
+                        No gifting matches for this event yet.
                     </div>
-                ))}
+                )}
             </div>
         </div>
     );
@@ -249,7 +265,7 @@ export function EventDialog({ dateStr, events, isOpen, onClose }: EventDialogPro
     const tabs = [
         { id: "outfit" as ModalTab, label: "Outfit", icon: Shirt },
         { id: "marketing" as ModalTab, label: "Campaign", icon: Megaphone },
-        ...(hasGifting ? [{ id: "gifting" as ModalTab, label: "Gifting", icon: Gift }] : []),
+        { id: "gifting" as ModalTab, label: "Gifting", icon: Gift },
     ];
 
     return (
