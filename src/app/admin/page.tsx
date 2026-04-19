@@ -57,6 +57,10 @@ const EXCEL_MAPPING: Record<string, string> = {
     "Transparency": "transparency",
     "Treatment": "treatment",
     "Image URL 1": "imageUrl",
+    "Vibe": "vibe",
+    "Audience": "audience",
+    "Season": "season",
+    "Silhouette": "silhouette",
 };
 
 const INITIAL_FORM_STATE = {
@@ -94,6 +98,10 @@ const INITIAL_FORM_STATE = {
     pendantsType: "0",
     sizeGroup: "regular",
     surfaceStyling: "",
+    vibe: "glam",
+    audience: "Gen Z",
+    season: "summer",
+    silhouette: "relaxed",
     theme: "0",
     transparency: "opaque",
     treatment: "0",
@@ -210,15 +218,27 @@ export default function AdminPage() {
     const handleProductSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const { name, category, price, imageUrl, style, color, material, ...metadata } = productForm;
+            const {
+                name, category, price, imageUrl, style, color, material,
+                occasion, season, silhouette, vibe, audience, styleCode,
+                ...metadata
+            } = productForm;
+
             const payload = {
                 name,
                 category,
                 price: parseInt(price) * 100,
                 imageUrl,
+                styleCode,
                 style,
                 color,
                 material,
+                // Root fields from schema
+                occasion: occasion ? [occasion] : [],
+                season: season ? [season] : [],
+                silhouette,
+                vibe,
+                audience,
                 metadata,
                 description: `${name} - A ${color} ${style} ${category} item for ${productForm.department}.`,
             };
@@ -241,6 +261,14 @@ export default function AdminPage() {
         }
     };
 
+    const parsePrice = (val: any): number => {
+        if (typeof val === 'number') return Math.round(val * 100);
+        if (!val) return 0;
+        const clean = String(val).replace(/[^0-9.-]/g, '');
+        const parsed = parseFloat(clean);
+        return isNaN(parsed) ? 0 : Math.round(parsed * 100);
+    };
+
     const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -252,24 +280,38 @@ export default function AdminPage() {
                 const workbook = XLSX.read(data, { type: "binary" });
                 const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                 let successCount = 0;
-                for (const row of rows as any[]) {
+                const ROOT_FIELDS = ["name", "category", "imageUrl", "style", "color", "material", "vibe", "audience", "silhouette", "occasion", "season", "styleCode"];
+                const processedProducts = (rows as any[]).map(row => {
                     const product: any = { metadata: {} };
                     for (const [header, value] of Object.entries(row)) {
                         const key = EXCEL_MAPPING[header];
                         if (!key) continue;
-                        if (["name", "category", "imageUrl", "style", "color", "material"].includes(key)) {
-                            product[key] = String(value);
+
+                        const sanitizedValue = value === null || value === undefined ? "" : String(value).trim();
+
+                        if (ROOT_FIELDS.includes(key)) {
+                            if (key === "occasion" || key === "season") {
+                                product[key] = sanitizedValue ? [sanitizedValue] : [];
+                            } else {
+                                product[key] = sanitizedValue;
+                            }
                         } else {
-                            product.metadata[key] = String(value);
+                            product.metadata[key] = sanitizedValue;
                         }
                     }
                     product.name = product.name || "Untitled Silhouette";
                     product.category = product.category || "Unclassified";
-                    product.price = row["Price"] ? parseInt(row["Price"]) * 100 : 0;
+                    product.price = parsePrice(row["Price"]);
                     product.imageUrl = product.imageUrl || "https://images.unsplash.com/photo-1594932224010-75f430ca0489?w=600&q=80";
-                    await createProduct.mutateAsync(product);
-                    successCount++;
+                    product.description = product.description || `${product.name} - A ${product.color || ''} ${product.style || ''} ${product.category} item.`.trim();
+                    return product;
+                });
+
+                if (processedProducts.length > 0) {
+                    await createProduct.mutateAsync(processedProducts as any);
+                    successCount = processedProducts.length;
                 }
+
                 toast({ title: "Bulk Curation Complete", description: `Archived ${successCount} silhouettes.` });
             } catch (error) {
                 toast({ title: "Bulk Curation Failed", variant: "destructive" });

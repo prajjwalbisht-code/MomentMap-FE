@@ -10,6 +10,7 @@ export const products = pgTable("products", {
     category: text("category").notNull(),
     price: integer("price").notNull(), // stored in cents
     imageUrl: text("image_url").notNull(),
+    styleCode: text("style_code").notNull(),
 
     // Fashion Attributes
     color: text("color"),

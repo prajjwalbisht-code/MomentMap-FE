@@ -1,11 +1,10 @@
-import { storage } from "@/lib/storage";
 import { NextResponse } from "next/server";
 import { insertProductSchema } from "@shared/schema";
 import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
+const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:3001";
 
 export async function GET(req: Request) {
     try {
@@ -60,16 +59,56 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const validated = insertProductSchema.parse(body);
-        const product = await storage.createProduct(validated);
-        return NextResponse.json(product, { status: 201 });
-    } catch (err) {
-        if (err instanceof z.ZodError) {
-            return NextResponse.json({ message: err.issues[0].message }, { status: 400 });
+        console.log("POST /api/products body:", JSON.stringify(body, null, 2));
+        const isArray = Array.isArray(body);
+        const validated = isArray
+            ? z.array(insertProductSchema).parse(body)
+            : insertProductSchema.parse(body);
+
+        console.log(`Forwarding product creation to backend: ${BACKEND_URL}/api/products`);
+        const response = await fetch(`${BACKEND_URL}/api/products`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Connection': 'close'
+            },
+            body: JSON.stringify(validated),
+            cache: 'no-store',
+            //@ts-ignore - undici types might not include keepalive in all versions but it's supported
+            keepalive: false
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error(`Backend returned error ${response.status}:`, JSON.stringify(errorData, null, 2));
+            return NextResponse.json(
+                {
+                    message: errorData.message || errorData.error || "Failed to create product in backend",
+                    backendError: errorData
+                },
+                { status: response.status }
+            );
         }
-        return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+
+        const product = await response.json();
+        return NextResponse.json(product, { status: 201 });
+    } catch (err: any) {
+        console.error("POST /api/products error:", err);
+        if (err.cause) {
+            console.error("Fetch failure cause:", err.cause);
+        }
+        if (err instanceof z.ZodError) {
+            console.error("Zod Validation Issues:", JSON.stringify(err.issues, null, 2));
+            return NextResponse.json({ message: err.issues[0].message, issues: err.issues }, { status: 400 });
+        }
+        return NextResponse.json({
+            message: "Internal Server Error during product creation",
+            error: err.message,
+            cause: err.cause?.message || err.cause
+        }, { status: 500 });
     }
 }
+
 export async function DELETE(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
@@ -80,15 +119,31 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ message: "Name or styleCode is required for deletion" }, { status: 400 });
         }
 
-        if (name) {
-            await storage.deleteProductByName(name);
-        } else if (styleCode) {
-            await storage.deleteProductByStyleCode(styleCode);
+        const url = new URL(`${BACKEND_URL}/api/products`);
+        if (name) url.searchParams.append("name", name);
+        if (styleCode) url.searchParams.append("styleCode", styleCode);
+
+        console.log(`Forwarding deletion to backend: ${url.toString()}`);
+        const response = await fetch(url.toString(), {
+            method: 'DELETE',
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return NextResponse.json(
+                { message: errorData.message || "Failed to delete product from backend" },
+                { status: response.status }
+            );
         }
 
         return NextResponse.json({ message: "Product deleted successfully" }, { status: 200 });
-    } catch (err) {
+    } catch (err: any) {
         console.error("Deletion error:", err);
-        return NextResponse.json({ message: "Internal Server Error during deletion" }, { status: 500 });
+        return NextResponse.json({
+            message: "Internal Server Error during deletion",
+            error: err.message,
+            cause: err.cause?.message || err.cause
+        }, { status: 500 });
     }
 }

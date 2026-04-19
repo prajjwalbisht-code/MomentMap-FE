@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useRecommendations, useGenerateEvent, useMarketingContent } from "@/hooks/use-events";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/button";
 import {
@@ -271,6 +271,9 @@ export function EventDialog({ dateStr, events, isOpen, onClose }: EventDialogPro
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto border-none glass-morphism p-0 rounded-[4rem]">
+                <DialogDescription className="sr-only">
+                    Details and recommendations for the selected fashion event.
+                </DialogDescription>
                 {!events.length ? (
                     <div className="text-center py-32 space-y-8">
                         <h3 className="text-5xl font-display font-bold italic">No events found.</h3>
