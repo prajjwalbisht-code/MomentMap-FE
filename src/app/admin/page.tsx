@@ -217,35 +217,66 @@ export default function AdminPage() {
 
     const handleProductSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        try {
-            const {
-                name, category, price, imageUrl, style, color, material,
-                occasion, season, silhouette, vibe, audience, styleCode,
-                ...metadata
-            } = productForm;
 
-            const payload = {
-                name,
-                category,
-                price: parseInt(price) * 100,
-                imageUrl,
-                styleCode,
-                style,
-                color,
-                material,
-                // Root fields from schema
-                occasion: occasion ? [occasion] : [],
-                season: season ? [season] : [],
-                silhouette,
-                vibe,
-                audience,
-                metadata,
-                description: `${name} - A ${color} ${style} ${category} item for ${productForm.department}.`,
-            };
-            await createProduct.mutateAsync(payload as any);
-            toast({ title: "Silhouette Catalogued", description: "The item has been added to your digital archive." });
+        // ─── 0. VALIDATION ───
+        const requiredFields = {
+            name: "Product Name",
+            category: "Category",
+            styleCode: "Style Code",
+            imageUrl: "Image URL"
+        };
+
+        const missing = Object.entries(requiredFields).filter(([key]) => !(productForm as any)[key]?.trim());
+        if (missing.length > 0) {
+            toast({
+                title: "Incomplete Details",
+                description: `Please provide: ${missing.map(([, label]) => label).join(", ")}.`,
+                variant: "destructive"
+            });
+            return;
+        }
+
+        try {
+            const ROOT_FIELDS = ["name", "category", "imageUrl", "style", "color", "material", "vibe", "audience", "silhouette", "occasion", "season", "styleCode"];
+            const product: any = { metadata: {} };
+
+            // Map form fields using the same logic as Excel
+            for (const [key, value] of Object.entries(productForm)) {
+                const sanitizedValue = value === null || value === undefined ? "" : String(value).trim();
+                if (ROOT_FIELDS.includes(key)) {
+                    if (key === "occasion" || key === "season") {
+                        product[key] = sanitizedValue ? [sanitizedValue] : [];
+                    } else {
+                        product[key] = sanitizedValue;
+                    }
+                } else {
+                    product.metadata[key] = sanitizedValue;
+                }
+            }
+
+            // Apply fallbacks and conversions
+            product.name = product.name || "Untitled Silhouette";
+            product.category = product.category || "Unclassified";
+            product.price = parsePrice(productForm.price);
+            product.imageUrl = product.imageUrl || "https://images.unsplash.com/photo-1594932224010-75f430ca0489?w=600&q=80";
+            product.description = `${product.name} - A ${product.color || ''} ${product.style || ''} ${product.category} item.`.trim();
+
+            const response: any = await createProduct.mutateAsync([product] as any);
+
+            const message = response?.new_links_added
+                ? `Archived and linked to ${response.new_links_added} event moments.`
+                : "The item has been added to your digital archive.";
+
+            toast({
+                title: "Asset Synchronized",
+                description: response?.new_links_added
+                    ? `Product archived to S3 and automatically matched to ${response.new_links_added} events.`
+                    : "Product successfully archived to S3. No new event matches found.",
+            });
+
             setProductForm(INITIAL_FORM_STATE);
         } catch (error) {
+            console.error("Single product submit failed:", error);
             toast({ title: "Archival Failed", variant: "destructive" });
         }
     };
@@ -299,20 +330,38 @@ export default function AdminPage() {
                             product.metadata[key] = sanitizedValue;
                         }
                     }
+
+                    // Validation: styleCode is mandatory for matching
+                    if (!product.styleCode) return null;
+
                     product.name = product.name || "Untitled Silhouette";
                     product.category = product.category || "Unclassified";
                     product.price = parsePrice(row["Price"]);
                     product.imageUrl = product.imageUrl || "https://images.unsplash.com/photo-1594932224010-75f430ca0489?w=600&q=80";
                     product.description = product.description || `${product.name} - A ${product.color || ''} ${product.style || ''} ${product.category} item.`.trim();
                     return product;
-                });
+                }).filter(Boolean);
+
+                const skippedCount = rows.length - processedProducts.length;
 
                 if (processedProducts.length > 0) {
-                    await createProduct.mutateAsync(processedProducts as any);
-                    successCount = processedProducts.length;
-                }
+                    const response: any = await createProduct.mutateAsync(processedProducts as any);
 
-                toast({ title: "Bulk Curation Complete", description: `Archived ${successCount} silhouettes.` });
+                    const fullMessage = response?.new_links_added
+                        ? `Catalog synced to S3. ${processedProducts.length} items archived and matched to ${response.new_links_added} event moments.${skippedCount > 0 ? ` (${skippedCount} rows skipped)` : ""}`
+                        : `Catalog synced to S3. ${processedProducts.length} items archived successfully.${skippedCount > 0 ? ` (${skippedCount} rows skipped)` : ""}`;
+
+                    toast({
+                        title: "Bulk Archival Complete",
+                        description: fullMessage
+                    });
+                } else if (skippedCount > 0) {
+                    toast({
+                        title: "Import Failed",
+                        description: `All ${skippedCount} rows were missing Style Codes.`,
+                        variant: "destructive"
+                    });
+                }
             } catch (error) {
                 toast({ title: "Bulk Curation Failed", variant: "destructive" });
             } finally {
