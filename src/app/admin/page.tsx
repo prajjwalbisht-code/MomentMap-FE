@@ -379,8 +379,6 @@ export default function AdminPage() {
             <main className="flex-1 ml-80 min-h-screen">
                 <header className="h-20 border-b border-black/5 bg-white flex items-center justify-between px-12 sticky top-0 z-40">
                     <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
-                        <span>Current View</span>
-                        <span className="text-black/10">/</span>
                         <span className="text-primary italic">Catalogue New Silhouette</span>
                     </div>
 

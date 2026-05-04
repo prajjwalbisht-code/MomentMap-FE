@@ -55,6 +55,42 @@ function getPillColor(eventName: string) {
   return PILL_COLORS[Math.abs(hash) % PILL_COLORS.length];
 }
 
+const highlightImageUrl = "https://cdn.mos.cms.futurecdn.net/whowhatwear/posts/282134/fashion-trends-miranda-priestly-hates-the-devil-wears-prada-282134-1566952533218-image.jpg";
+
+const SEASON_DATA = {
+  spring: {
+    name: "Spring",
+    heading: "Fluid layers meet visible intimates",
+    description: "Sheer midis over exposed underwear, shirts stacked on shirts. Balloon trousers with exaggerated hems balance the floaty, boho-leaning tops. The silhouette is relaxed below, sheer and close above.",
+    image: highlightImageUrl
+  },
+  summer: {
+    name: "Summer",
+    heading: "Sculptural Denim & Cocoon Sleeves",
+    description: "Sculptural denim with cinched waists and cocoon sleeves sets the tone for bold proportion play. Slim Capri pants and bubble-hem skirts bring Y2K nostalgia into modern tailoring. Lace maxi lengths and satin trims add a romantic, feminine finish.",
+    image: highlightImageUrl
+  },
+  autumn: {
+    name: "Autumn",
+    heading: "Military-cut Skirt Suits",
+    description: "Military-cut skirt suits dominate — collarless jackets, peplum shoulders, pencil skirts cinched at the waist. Body-skimming shrunken proportions at the top contrast with slim, refined leg shapes below. Structure and authority define every silhouette this season.",
+    image: highlightImageUrl
+  },
+  winter: {
+    name: "Winter",
+    heading: "High, Covered & Sculptural",
+    description: "Funnel necks, sculpted roll-necks and built-in scarf collars frame the face with intent. Corseted hourglass evening shapes spill into dramatic taffeta skirts for after-dark dressing. Oversized leather coats and fur-collared outerwear complete the season's armoured elegance.",
+    image: highlightImageUrl
+  }
+};
+
+function getSeason(month: number) {
+  if (month >= 2 && month <= 4) return "spring";
+  if (month >= 5 && month <= 7) return "summer";
+  if (month >= 8 && month <= 10) return "autumn";
+  return "winter";
+}
+
 export default function CalendarPage() {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -114,7 +150,9 @@ export default function CalendarPage() {
   };
 
   const todayImageUrl = "https://cdn.shopify.com/s/files/1/0813/2267/2439/files/Snapinsta.app_433465435_757875729623761_3870725218213777141_n_1080_480x480.jpg?v=1711505777";
-  const highlightImageUrl = "https://cdn.mos.cms.futurecdn.net/whowhatwear/posts/282134/fashion-trends-miranda-priestly-hates-the-devil-wears-prada-282134-1566952533218-image.jpg";
+
+  const currentSeasonKey = getSeason(viewMonth);
+  const currentSeason = SEASON_DATA[currentSeasonKey];
 
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
@@ -260,12 +298,11 @@ export default function CalendarPage() {
                   Curated Highlight
                 </span>
                 <h2 className="text-[5rem] font-display font-bold leading-[1] tracking-tight mb-8">
-                  Spring Trend: <br />
-                  <span className="italic font-light">Translucent Silhouettes</span>
+                  {currentSeason.name} Trend: <br />
+                  <span className="italic font-light">{currentSeason.heading}</span>
                 </h2>
                 <p className="font-body text-xl text-muted-foreground max-w-xl leading-relaxed mb-12">
-                  This month, we explore the intersection of digital transparency and physical textures.
-                  A curated selection for the avant-garde wardrobe.
+                  {currentSeason.description}
                 </p>
                 <Link
                   href="/products"
@@ -279,7 +316,7 @@ export default function CalendarPage() {
             <div className="lg:col-span-4">
               <div className="rounded-[4rem] overflow-hidden shadow-ambient h-full aspect-square lg:aspect-auto relative group">
                 <img
-                  src={highlightImageUrl}
+                  src={currentSeason.image}
                   alt="Editorial"
                   className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                 />
